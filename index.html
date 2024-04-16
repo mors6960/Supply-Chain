@@ -1,0 +1,204 @@
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supply Chain</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container" id="container">
+        <div class="header">
+            <h1>Supply Chain</h1>
+        </div>
+        <div class="buy" id="buy">
+            <label for="customer">Customer Name: </label>
+            <input type="text" name="customer" id="customer" required>
+            <label for="product">Product Category: </label>
+            <select name="productcateogory" id="productcateogory">
+                <option value="select" class="select" id="select">--
+                    Select What you want--</option>
+            </select>
+        </div>
+        <div class="cart" id="cart">
+            <fieldset>
+                <legend>My Cart</legend>
+                <table border="2px">
+                    <tr>
+                        <th>ID:</th>
+                        <th>Name:</th>
+                        <th>Catergory:</th>
+                        <th>Quantity:</th>
+                    </tr>
+                </table>
+            </fieldset>
+        </div>
+        <div class="bill">
+            <label for="total">Total bill of your cart:-</label>
+            <input type="number" id="total" class="total" readonly title="Sorry! you can't edit this"
+                placeholder="Value are in $">
+            <input type="button" class="calcTotal" value="Value of your cart">
+        </div>
+        <div class="checkout">
+            <input type="button" value="Checkout" id="check" onclick="checkout()">
+        </div>
+    </div>
+    <div class="delivery">
+        <fieldset>
+            <legend>Delivery Manager:</legend>
+            <h2>Your order delivered at your doorstep!</h2>
+            <label for="deliverymanager">Delivery Manager: </label>
+            <select name="deliveryManager" id="deliveryManager">
+                <option value="selectyourManager">Select your delivery partner</option>
+            </select>
+            <label for="email">Email:</label>
+            <input type="email" readonly id="agentEmail">
+            <label for="contact">Contact No. :</label>
+            <input type="number" readonly id="agentContact">
+            <label for="date">Date when you want delivery:</label>
+            <input type="date" id="date">
+            <label for="time">Time when you want delivery:</label>
+            <input type="time" id="time">
+            <input type="submit" value="Submit">
+            <h2>Your order is delivered on time. Thanking You for choosing our service.</h2>
+        </fieldset>
+
+    </div>
+</body>
+
+</html>
+<script>
+    $(document).ready(function () {
+        $.ajax({
+            url: 'products.json',
+            method: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                var categories = {};
+                $.each(data, function (index, item) {
+                    categories[item.Category] = true;
+                });
+
+                var html = '';
+                for (var category in categories) {
+                    html += '<option value="' + category + '">' + category + '</option>';
+                }
+                $('#productcateogory').append(html);
+            }
+        });
+
+        // Event listener for the product category select
+        $('#productcateogory').change(function () {
+            var selectedCategory = $(this).val();
+            if (selectedCategory !== 'select') {
+                $.ajax({
+                    url: 'products.json',
+                    method: 'GET',
+                    dataType: 'json',
+                    success: function (data) {
+                        var html =
+                            '<tr><th>ID:</th><th>Name:</th><th>Category:</th><th>Price:</th><th>Quantity:</th></tr>';
+                        $.each(data, function (index, item) {
+                            if (item.Category === selectedCategory) {
+                                html += '<tr>';
+                                html += '<td>' + item.id + '</td>';
+                                html += '<td>' + item.Products + '</td>';
+                                html += '<td>' + item.Category + '</td>';
+                                html += '<td class="price">' + item.Price + '</td>';
+                                html +=
+                                    '<td><input type="number" value="0" min="0" class="quantity"></td>';
+                                html += '</tr>';
+                            }
+                        });
+                        $('#cart table').html(html);
+                    }
+                });
+            }
+        });
+
+        $('.calcTotal').click(function () {
+            calculateBill();
+        });
+    });
+
+    function calculateBill() {
+        var totalBill = 0;
+        $('#cart table tr').each(function (index) {
+            if (index !== 0) {
+                var quantity = parseInt($(this).find('.quantity')
+                    .val());
+                var price = parseFloat($(this).find('.price').text());
+                totalBill += quantity * price;
+            }
+        });
+
+        $('#total').val(totalBill);
+    }
+
+    function checkout() {
+        let result = confirm("You want delivery at your doorstep?");
+        console.log(result);
+
+        if (result) {
+            document.querySelector('.delivery').style.display = 'block';
+            document.querySelector('.container').style.display = 'none';
+        } else {
+            alert("Thanks! SEE YOU SOON..")
+        }
+    }
+
+
+    //Delivery Manager Script
+    $(document).ready(function () {
+        $.ajax({
+            url: 'agent.json',
+            method: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                var categories = {};
+                $.each(data, function (index, item) {
+                    categories[item.Agent_Name] = {
+                        contact: item.Contact,
+                        email: item.Email
+                    };
+                });
+
+                var html = '';
+                for (var Agent_Name in categories) {
+                    html += '<option value="' + Agent_Name + '">' + Agent_Name + '</option>';
+                }
+                $('#deliveryManager').append(html);
+
+                // Event listener for dropdown change
+                $('#deliveryManager').change(function () {
+                    var selectedAgent = $(this).val();
+                    if (selectedAgent in categories) {
+                        $('#agentEmail').val(categories[selectedAgent].email);
+                        $('#agentContact').val(categories[selectedAgent].contact);
+                    }
+                });
+            },
+        });
+    });
+
+    function updateDateInput() {
+        var now = new Date();
+        var currentDate = now.toISOString().split('T')[0];
+        $('#date').val(currentDate);
+    }
+    updateDateInput();
+    setInterval(updateDateInput, 1000);
+
+    function updateTimeInput() {
+        var now = new Date();
+        var currentHour = now.getHours().toString().padStart(2, '0');
+        var currentMinute = now.getMinutes().toString().padStart(2, '0');
+        var currentTime = currentHour + ':' + currentMinute;
+        $('#time').val(currentTime);
+    }
+    updateTimeInput();
+    setInterval(updateTimeInput, 1000);
+</script>
